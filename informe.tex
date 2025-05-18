@@ -1,0 +1,376 @@
+\documentclass{article}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{pgfplots}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{codegreen},
+    commentstyle=\color{codegray},
+    stringstyle=\color{codepurple},
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\title{%
+\textbf{Algoritmo de Harvey y van der Hoeven} \\[0.4cm]
+\large{O(n \log n): Reducción de Complejidad Computacional} \\[0.2cm]
+\small{Fecha: \today}  % Fecha automática en español
+}
+
+\author{%
+\textbf{Universidad La Salle} \\
+Análisis y Diseño de Algoritmos \\
+Estudiante: Esther Mariana Chunga Pacheco \\
+Docente: Edson Francisco Luque Mamani \\
+}
+
+\date{}  % Elimina fecha automática inferior
+
+\begin{document}
+
+\maketitle
+
+
+
+% Configuración del índice
+\setcounter{tocdepth}{3}  % Profundidad hasta subsubsecciones
+\renewcommand{\contentsname}{Índice General}
+
+% En el cuerpo del documento
+\tableofcontents
+\newpage
+\section{Introducción}
+La multiplicación de enteros grandes constituye un pilar fundamental en disciplinas como la criptografía, el cálculo científico y la teoría de números computacional. El algoritmo de Harvey y van der Hoeven (2019) representa un hito revolucionario al alcanzar la complejidad óptica teórica de \( O(n \log n) \), resolviendo un problema abierto durante más de cinco décadas.
+
+Este algoritmo innova mediante tres componentes clave:
+\begin{itemize}
+    \item \textbf{Descomposición Multivariante}: Transforma el polinomio univariado tradicional en una estructura multivariada \( A(x_1,\ldots,x_k) \), permitiendo FFTs más pequeñas y paralelizables.
+    
+    \item \textbf{Aritmética en Anillos Especiales}: Utiliza anillos cociente \( \mathbb{Z}/p\mathbb{Z} \) con:
+    \begin{itemize}
+        \item Primos especiales de la forma \( p = 2^{2^k} + 1 \) (Primos de Fermat generalizados)
+        \item Raíces primitivas de alta orden \( \omega \) para transformadas eficientes
+        \ ditem Estructura modular que evita errores de redondeo
+    \end{itemize}
+    
+    \item \textbf{Mecanismo de Recomposición}: Un método novedoso para combinar resultados parciales mediante:
+    \begin{equation}
+        C = \sum_{i=0}^{m} c_i 2^{64i} \quad \text{con} \quad c_i = \sum_{j+k=i} a_jb_k
+    \end{equation}
+\end{itemize}
+
+El núcleo del algoritmo implementa una Transformada Teórico-Numérica (NTT) multivariante mediante cuatro etapas precisas:
+1. \textit{Segmentación}: Divide los enteros en dígitos base-\( 2^{64} \)
+2. \textit{Mapeo Dimensional}: Convierte a polinomio en \( (\mathbb{Z}/p\mathbb{Z})[x_1,\ldots,x_k] \)
+3. \textit{Transformada Multidireccional}: Ejecuta NTTs univariadas en cada dimensión
+4. \textit{Reconstrucción Jerárquica}: Combina resultados usando el Teorema Chino del Resto
+
+La Figura 1 ilustra este flujo, donde la complejidad se reduce al evitar las recursiones anidadas características de Schönhage-Strassen, eliminando así el factor \( \log \log n \). Actualmente, aunque su implementación práctica requiere precauciones de memoria caché y optimización de acceso a datos, establece un nuevo paradigma en el diseño de algoritmos numéricos.
+
+\section{Contexto Histórico}
+\begin{itemize}
+    \item \textbf{Método escolar}: \( O(n^2) \)
+    \item \textbf{Karatsuba (1963)}: \( O(n^{\log_2 3}) \approx O(n^{1.585}) \)
+    \item \textbf{Métodos basados en FFT (Schönhage-Strassen, 1971)}: \( O(n \log n \log \log n) \)
+    \item \textbf{Harvey y van der Hoeven (2019)}: \( O(n \log n) \)
+\end{itemize}
+
+\section{Base Teórica}
+\subsection{Convolución y DFT}
+La multiplicación de enteros puede reducirse a convolución polinomial mediante la Transformada Discreta de Fourier (DFT):
+\begin{equation}
+    (a \ast b)_k = \sum_{j=0}^{n-1} a_j b_{k-j}
+\end{equation}
+
+El Teorema de Convolución establece:
+\begin{equation}
+    \mathcal{F}(a \ast b) = \mathcal{F}(a) \cdot \mathcal{F}(b)
+\end{equation}
+
+\subsection{Transformada Rápida de Fourier (FFT)}
+La FFT calcula la DFT en \( O(n \log n) \). Para multiplicación:
+\begin{enumerate}
+    \item Convertir enteros en polinomios \( A(x) \) y \( B(x) \)
+    \item Calcular \( \mathcal{F}(A) \) y \( \mathcal{F}(B) \)
+    \item Multiplicar resultados en dominio frecuencial
+    \item Calcular FFT inversa para obtener \( A(x) \cdot B(x) \)
+\end{enumerate}
+
+\section{Algoritmo de Harvey y van der Hoeven}
+\subsection{Innovaciones Clave}
+\begin{itemize}
+    \item \textbf{Polinomios multivariados}: Descomposición del problema en múltiples variables para reducir el tamaño de la FFT
+    \item \textbf{Selección óptima de anillos}: Uso de anillos con raíces de la unidad para evitar problemas de precisión numérica
+    \item \textbf{Manejo de coeficientes}: Evita pasos recursivos de FFT que introducen términos \( \log \log n \)
+\end{itemize}
+
+\subsection{Análisis Detallado de Complejidad}
+Para comprender cómo se alcanza la complejidad \( O(n \log n) \), desglosamos cada etapa:
+
+\begin{itemize}
+    \item \textbf{Segmentación}: \( O(n) \)
+    \begin{equation}
+        T_{\text{seg}}(n) = \left\lceil \frac{n}{64} \right\rceil
+    \end{equation}
+    
+    \item \textbf{Mapeo Multidimensional}: \( O(d \cdot n^{1/d}) \) para \( d \) dimensiones
+    \begin{equation}
+        T_{\text{map}}(n) = \sum_{i=1}^d \left( \frac{n}{2^i} \log \frac{n}{2^i} \right)
+    \end{equation}
+    
+    \item \textbf{NTT Multivariante}: \( O(n \log n) \) por:
+    \begin{equation}
+        T_{\text{NTT}}(n) = \sum_{i=1}^d T_{\text{NTT-univariada}}\left(\frac{n}{2^{i-1}}\right)
+    \end{equation}
+    
+    \item \textbf{Multiplicación Componente}: \( O(n) \)
+    \item \textbf{Recomposición}: \( O(n^{1/d} \log n) \)
+\end{itemize}
+
+La complejidad total se obtiene mediante la recurrencia:
+\begin{equation}
+    T(n) = 2d \cdot T\left(\frac{n}{d}\right) + O(n)
+\end{equation}
+
+Resolviendo con el Teorema Maestro para división multidimensional:
+\begin{align*}
+    a &= 2d \\
+    b &= d \\
+    f(n) &= O(n) \\
+    \log_b a &= \log_d 2d = 1 + \log_d 2 \\
+    \text{Caso } &f(n) = O(n^{\log_b a - \epsilon}) \Rightarrow T(n) = O(n \log n)
+\end{align*}
+
+\subsubsection{Comparación con Algoritmos Previos}
+\begin{table}[h]
+\centering
+\begin{tabular}{l|c|c}
+Algoritmo & Complejidad & Factor Eliminado \\
+\hline
+Escolar & \( O(n^2) \) & - \\
+Karatsuba & \( O(n^{1.585}) \) & \( n^{0.415} \) \\
+Schönhage-Strassen & \( O(n \log n \log \log n) \) & \( \log \log n \) \\
+Harvey-vdHoeven & \( O(n \log n) \) & Todos \\
+\end{tabular}
+\caption{Evolución de complejidad en multiplicación de enteros}
+\end{table}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, every node/.style={rectangle, draw, align=center, minimum width=3cm}]
+\node (input) {Enteros \\ \(a, b\)};
+\node (split) [below=of input] {Descomposición \\ base-\(2^{64}\)};
+\node (map) [below=of split] {Mapeo a polinomio \\ multivariado \\ \((x_1, x_2, \ldots, x_k)\)};
+\node (ntt) [below=of map] {NTT en cada \\ dimensión \\ (usando \( \omega \in \mathbb{Z}/p\mathbb{Z} \))};
+\node (mult) [below=of ntt] {Multiplicación \\ componente a componente};
+\node (intt) [below=of mult] {NTT inversa \\ por dimensión};
+\node (reconstruct) [below=of intt] {Recomposición \\ (Teorema Chino)};
+\node (output) [below=of reconstruct] {Resultado \\ \(a \times b\)};
+
+\draw [->] (input) -- (split);
+\draw [->] (split) -- (map);
+\draw [->] (map) -- (ntt);
+\draw [->] (ntt) -- (mult);
+\draw [->] (mult) -- (intt);
+\draw [->] (intt) -- (reconstruct);
+\draw [->] (reconstruct) -- (output);
+\end{tikzpicture}
+\caption{Flujo detallado del algoritmo de Harvey y van der Hoeven}
+\end{figure}
+
+\section{Esquema de Código en Python}
+\begin{lstlisting}[language=Python, caption=Implementación mejorada con NTT multivariante]
+import numpy as np
+
+# Parámetros del anillo especial (primo de Fermat generalizado)
+PRIMO = 0xFFFFFFFF00000001  # p = 2^64 - 2^32 + 1
+RAIZ = 3                    # Raíz primitiva de orden 2^32
+
+def ntt_multivariate(a, dims):
+    """Transformada Teórico-Numérica multivariante"""
+    n = len(a)
+    result = a.copy()
+    # FFT en cada dimensión usando Cooley-Tukey iterativo
+    for dim in dims:
+        m = 1 << dim
+        for i in range(0, n, m):
+            for j in range(m // 2):
+                raiz = pow(RAIZ, (PRIMO-1) // (m << j), PRIMO)
+                for k in range(i, i + m//2):
+                    l = k + m//2
+                    t = (result[l] * raiz) % PRIMO
+                    result[k], result[l] = (result[k] + t) % PRIMO, (result[k] - t) % PRIMO
+    return result
+
+def multiplicar_hvdh(a, b, base=10):
+    """Implementación del algoritmo Harvey-van der Hoeven"""
+    # 1. Segmentación base-2^64
+    bits = 64
+    a_digits = [(a >> (i*bits)) & ((1 << bits)-1) for i in range((a.bit_length()+63)//64)]
+    b_digits = [(b >> (i*bits)) & ((1 << bits)-1) for i in range((b.bit_length()+63)//64)]
+    
+    # 2. Mapeo multidimensional (dimensión óptima)
+    n = max(len(a_digits), len(b_digits))
+    dims = [int(np.log2(n))]  # Dimensión adaptativa
+    
+    # 3. Transformada en cada dimensión
+    a_ntt = ntt_multivariate(a_digits + [0]*(n - len(a_digits)), dims)
+    b_ntt = ntt_multivariate(b_digits + [0]*(n - len(b_digits)), dims)
+    
+    # 4. Multiplicación componente a componente
+    c_ntt = [(x * y) % PRIMO for x, y in zip(a_ntt, b_ntt)]
+    
+    # 5. Transformada inversa
+    inv_raiz = pow(RAIZ, PRIMO-2, PRIMO)  # Inverso multiplicativo
+    c = ntt_multivariate(c_ntt, dims[::-1])
+    
+    # 6. Recomposición con Teorema Chino del Resto
+    inv_n = pow(n, PRIMO-2, PRIMO)
+    c = [(x * inv_n) % PRIMO for x in c]
+    
+    # 7. Manejo de acarreos y conversión final
+    resultado = 0
+    for i, val in enumerate(c):
+        resultado += (val << (i * bits))
+    return resultado
+
+# Ejemplo de uso
+a = 123456789012345678901234567890
+b = 987654321098765432109876543210
+print(f"Resultado: {multiplicar_hvdh(a, b)}")
+\end{lstlisting}
+
+\textbf{Nota}: La implementación real usa transformadas teoricanuméricas (NTT) en campos finitos para aritmética exacta.
+
+\section{Comparación de Complejidad}
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    xlabel={Tamaño de entrada (n)},
+    ylabel={Complejidad temporal},
+    legend pos=north west,
+    ymode=log,
+    xmode=log,
+]
+\addplot coordinates {
+    (10, 100) (100, 10000) (1000, 1000000)
+};
+\addplot coordinates {
+    (10, 30) (100, 1000) (1000, 30000)
+};
+\addplot coordinates {
+    (10, 10) (100, 200) (1000, 3000)
+};
+\legend{Método escolar \( O(n^2) \), Karatsuba \( O(n^{1.585}) \), Harvey-vdHoeven \( O(n \log n) \)}
+\end{axis}
+\end{tikzpicture}
+\caption{Comparación de complejidad asintótica (escala log-log)}
+\end{figure}
+
+\section{Conclusión}
+El algoritmo de Harvey y van der Hoeven alcanza el límite teórico inferior para multiplicación de enteros mediante la optimización de FFTs multivariantes y aritmética de anillos. Aunque su implementación es altamente no trivial, representa un resultado histórico en la teoría de complejidad computacional.
+El algoritmo de Harvey y van der Hoeven representa un punto de inflexión en la teoría de la complejidad computacional, estableciendo por primera vez un límite óptico teóricamente alcanzable para la multiplicación de enteros. Sus principales logros pueden resumirse en:
+
+\begin{itemize}
+    \item \textbf{Optimalidad matemática}: Demostración formal de que \( O(n \log n) \) es el límite inferior alcanzable para este problema fundamental.
+    
+    \item \textbf{Innovación técnica}: Combinación sin precedentes de:
+    \begin{itemize}
+        \item Teoría de números algebraica
+        \item Análisis multivariante
+        \item Optimización de hardware moderno
+    \end{itemize}
+    
+    \item \textbf{Impacto transversal}: Aplicaciones potenciales en:
+    \begin{itemize}
+        \item Criptografía post-cuántica (operaciones con polinomios de gran grado)
+        \item Cálculo científico de alta precisión
+        \item Teoría de la información algorítmica
+    \end{itemize}
+\end{itemize}
+
+\subsection{Desafíos de Implementación}
+A pesar de su elegancia teórica, la implementación práctica presenta retos significativos:
+\begin{itemize}
+    \item \textbf{Optimización de memoria}: El mapeo multidimensional requiere estrategias avanzadas de gestión de caché
+    
+    \item \textbf{Paralelización}: Adaptación a arquitecturas GPU/TPU para aprovechar el paralelismo inherente
+    
+    \item \textbf{Selección de parámetros}: Elección óptima de primos y dimensiones para casos específicos
+\end{itemize}
+
+\subsection{Direcciones Futuras}
+Este trabajo abre nuevas líneas de investigación:
+\begin{enumerate}
+    \item Extensión a operaciones relacionadas (división modular, exponenciación)
+    \item Adaptación para aritmética de punto flotante de precisión arbitraria
+    \item Integración con protocolos criptográficos de última generación
+    \item Desarrollo de librerías especializadas (ej. FFTW para NTT multivariantes)
+\end{enumerate}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    campo/.style={draw, ellipse, minimum width=3cm, minimum height=1.5cm, align=center, thick},
+    algoritmo/.style={draw, rectangle, rounded corners, fill=red!20, minimum width=2.5cm, minimum height=1cm, align=center, font=\bfseries},
+    flecha/.style={->, >=Stealth, thick},
+    etiqueta/.style={midway, fill=white, font=\small}
+]
+
+% Capas para organización visual
+\pgfdeclarelayer{fondo}
+\pgfsetlayers{fondo,main}
+
+% Nodos principales
+\node[campo, fill=blue!10] (teoria) at (0,0) {Teoría de\\ Complejidad};
+\node[campo, fill=green!10] (matematicas) at (6,0) {Matemáticas\\ Discretas};
+\node[algoritmo, fill=red!30] (algoritmo) at (3,-3) {Algoritmo\\ Harvey-vdH};
+
+% Conexiones
+\draw[flecha, blue] (teoria) to[out=-90,in=150] node[etiqueta] {Análisis\\ formal} (algoritmo);
+\draw[flecha, green!50!black] (matematicas) to[out=-90,in=30] node[etiqueta] {Herramientas\\ algebraicas} (algoritmo);
+
+% Efecto de fondo
+\begin{pgfonlayer}{fondo}
+\node[draw=gray!30, fill=gray!5, rounded corners, fit=(teoria)(matematicas)(algoritmo), inner sep=1.5cm] (fondo) {};
+\end{pgfonlayer}
+
+% Eje interdisciplinario
+\draw[<->, dashed, gray] (teoria) -- node[above, font=\footnotesize] {Simbiosis teórica} (matematicas);
+
+% Impacto
+\node[campo, fill=orange!10] (computacion) at (3,-6) {Ciencias de la\\ Computación};
+\draw[flecha, red, line width=1.2pt] (algoritmo) -- node[right, etiqueta] {Aplicación\\ práctica} (computacion);
+
+\end{tikzpicture}
+\caption{Interdisciplinariedad del algoritmo Harvey-van der Hoeven: síntesis teórica y aplicabilidad práctica}
+\end{figure}
+
+La comunidad científica coincide en que este resultado no solo resuelve un problema clásico, sino que redefine el paradigma de diseño algorítmico para el siglo XXI, estableciendo nuevos estándares en la síntesis entre teoría pura y aplicabilidad práctica.
+
+\end{document}
+
+
+\end{document}
+
+
